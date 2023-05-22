@@ -5,105 +5,101 @@ using UnityEngine;
 
 public class AircraftPhysics : MonoBehaviour
 {
-    private const float PREDICTION_TIMESTEP_FRACTION = 0.5f;
+    const float PREDICTION_TIMESTEP_FRACTION = 0.5f;
 
-    [SerializeField] private float _thrust = 0;
-    [SerializeField] private List<AeroSurface> _aerodynamicSurfaces;
+    [SerializeField] 
+    float thrust = 0;
+    [SerializeField] 
+    List<AeroSurface> aerodynamicSurfaces = null;
 
-    private Rigidbody _body;
-    private float _thrustPercent;
-    private Vector3 _currentForce;
-    private Vector3 _currentTorque;
+    Rigidbody rb;
+    float thrustPercent;
+    (Vector3 force, Vector3 torque) currentForceAndTorque;
 
     public void SetThrustPercent(float percent)
     {
-        _thrustPercent = percent;
+        thrustPercent = percent;
     }
 
     private void Awake()
     {
-        _body = GetComponent<Rigidbody>();
+        rb = GetComponent<Rigidbody>();
     }
 
     private void FixedUpdate()
     {
-        Vector3 frameForce;
-        Vector3 frameTorque;
+        var forceAndTorqueThisFrame = CalculateAerodynamicForces(rb.velocity, rb.angularVelocity, Vector3.zero, 1.2f, rb.worldCenterOfMass);
 
-        var tmp = CalculateAerodynamicForces(_body.velocity, _body.angularVelocity, Vector3.zero, 1.2f, _body.worldCenterOfMass);
+        Vector3 velocityPrediction = PredictVelocity(forceAndTorqueThisFrame.force + transform.forward * thrust * thrustPercent + Physics.gravity * rb.mass);
+        Vector3 angularVelocityPrediction = PredictAngularVelocity(forceAndTorqueThisFrame.torque);
 
-        frameForce = tmp.force;
-        frameTorque = tmp.torque;
+        var forceAndTorquePrediction = CalculateAerodynamicForces(velocityPrediction, angularVelocityPrediction, Vector3.zero, 1.2f, rb.worldCenterOfMass);
 
-        Vector3 velocityPrediction = PredictVelocity(frameForce + transform.forward * _thrust * _thrustPercent + Physics.gravity * _body.mass);
-        Vector3 angularVelocityPrediction = PredictAngularVelocity(frameTorque);
+        currentForceAndTorque.force = (forceAndTorqueThisFrame.force + forceAndTorquePrediction.force) * 0.5f;
+        currentForceAndTorque.torque = (forceAndTorqueThisFrame.torque + forceAndTorquePrediction.torque) * 0.5f;
+        rb.AddForce(currentForceAndTorque.force);
+        rb.AddTorque(currentForceAndTorque.torque);
+
+        rb.AddForce(transform.forward * thrust * thrustPercent);
     }
 
-    private (Vector3 force, Vector3 torque) CalculateAerodynamicForces(Vector3 velocity, Vector3 angularVelocity,
-        Vector3 wind, float airDensity, Vector3 centerOfMass)
+    private (Vector3 force, Vector3 torque) CalculateAerodynamicForces(Vector3 velocity, Vector3 angularVelocity, Vector3 wind, float airDensity, Vector3 centerOfMass)
     {
-        Vector3 force = new Vector3();
-        Vector3 torque = new Vector3();
-
-        foreach (var aerodynamicSurface in _aerodynamicSurfaces)
+        (Vector3 force, Vector3 torque) forceAndTorque = new ();
+        foreach (var surface in aerodynamicSurfaces)
         {
-            Vector3 relativePosition = aerodynamicSurface.transform.position - centerOfMass;
-            var tmp = aerodynamicSurface.CalculateForces(-velocity + wind - Vector3.Cross(angularVelocity, relativePosition), airDensity, relativePosition);
-
-            force += tmp.force;
-            torque += tmp.torque;
+            Vector3 relativePosition = surface.transform.position - centerOfMass;
+            var tmp = surface.CalculateForces(-velocity + wind -Vector3.Cross(angularVelocity, relativePosition), airDensity, relativePosition);
+            forceAndTorque.force += tmp.force;
+            forceAndTorque.torque += tmp.torque;
         }
-        
-        return new ValueTuple<Vector3, Vector3>(force, torque);
+        return forceAndTorque;
     }
-    
+
     private Vector3 PredictVelocity(Vector3 force)
     {
-        return _body.velocity + Time.fixedDeltaTime * PREDICTION_TIMESTEP_FRACTION * force / _body.mass;
+        return rb.velocity + Time.fixedDeltaTime * PREDICTION_TIMESTEP_FRACTION * force / rb.mass;
     }
-    
+
     private Vector3 PredictAngularVelocity(Vector3 torque)
     {
-        Quaternion inertiaTensorWorldRotation = _body.rotation * _body.inertiaTensorRotation;
+        Quaternion inertiaTensorWorldRotation = rb.rotation * rb.inertiaTensorRotation;
         Vector3 torqueInDiagonalSpace = Quaternion.Inverse(inertiaTensorWorldRotation) * torque;
         Vector3 angularVelocityChangeInDiagonalSpace;
-        angularVelocityChangeInDiagonalSpace.x = torqueInDiagonalSpace.x / _body.inertiaTensor.x;
-        angularVelocityChangeInDiagonalSpace.y = torqueInDiagonalSpace.y / _body.inertiaTensor.y;
-        angularVelocityChangeInDiagonalSpace.z = torqueInDiagonalSpace.z / _body.inertiaTensor.z;
+        angularVelocityChangeInDiagonalSpace.x = torqueInDiagonalSpace.x / rb.inertiaTensor.x;
+        angularVelocityChangeInDiagonalSpace.y = torqueInDiagonalSpace.y / rb.inertiaTensor.y;
+        angularVelocityChangeInDiagonalSpace.z = torqueInDiagonalSpace.z / rb.inertiaTensor.z;
 
-        return _body.angularVelocity + Time.fixedDeltaTime * PREDICTION_TIMESTEP_FRACTION * (inertiaTensorWorldRotation * angularVelocityChangeInDiagonalSpace);
+        return rb.angularVelocity + Time.fixedDeltaTime * PREDICTION_TIMESTEP_FRACTION
+            * (inertiaTensorWorldRotation * angularVelocityChangeInDiagonalSpace);
     }
-    
+
 #if UNITY_EDITOR
     // For gizmos drawing.
     public void CalculateCenterOfLift(out Vector3 center, out Vector3 force, Vector3 displayAirVelocity, float displayAirDensity)
     {
         Vector3 com;
-        Vector3 tmpForce;
-        Vector3 tmpTorque;
-        if (_aerodynamicSurfaces == null)
+        (Vector3 force, Vector3 torque) forceAndTorque;
+        if (aerodynamicSurfaces == null)
         {
             center = Vector3.zero;
             force = Vector3.zero;
             return;
         }
 
-        if (_body == null)
+        if (rb == null)
         {
             com = GetComponent<Rigidbody>().worldCenterOfMass;
-            var tmp = CalculateAerodynamicForces(-displayAirVelocity, Vector3.zero, Vector3.zero, displayAirDensity, com);
-            tmpForce = tmp.force;
-            tmpTorque = tmp.torque;
+            forceAndTorque = CalculateAerodynamicForces(-displayAirVelocity, Vector3.zero, Vector3.zero, displayAirDensity, com);
         }
         else
         {
-            com = _body.worldCenterOfMass;
-            tmpForce = _currentForce;
-            tmpTorque = _currentTorque;
+            com = rb.worldCenterOfMass;
+            forceAndTorque = currentForceAndTorque;
         }
 
-        force = tmpForce;
-        center = com + Vector3.Cross(tmpForce, tmpTorque) / tmpForce.sqrMagnitude;
+        force = forceAndTorque.force;
+        center = com + Vector3.Cross(forceAndTorque.force, forceAndTorque.torque) / forceAndTorque.force.sqrMagnitude;
     }
 #endif
 }

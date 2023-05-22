@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 99a38161cac7f104481ce169256a48ff, type: 3}
-  m_Name: DefaultConfig
+  m_Name: StablilizerV
   m_EditorClassIdentifier: 
   liftSlope: 6.28
   skinFriction: 0.02
   zeroLiftAngleOfAttack: 0
   stallAngleHigh: 15
   stallAngleLow: -15
-  chord: 1
-  flapFraction: 0
-  span: 1
-  autoAspectRation: 1
-  aspectRatio: 1
+  chord: 0.92
+  flapFraction: 0.4
+  span: 1.47
+  autoAspectRatio: 1
+  aspectRatio: 1.5978261

@@ -15,7 +15,7 @@ public class AeroSurfaceSO : ScriptableObject
     public float chord = 1;
     public float flapFraction = 0.0f;
     public float span = 1.0f;
-    public bool autoAspectRation = true;
+    public bool autoAspectRatio = true;
     public float aspectRatio = 2;
 
 #if UNITY_EDITOR
@@ -49,7 +49,7 @@ public class AeroSurfaceSO : ScriptableObject
         }
 
         // Auto aspect
-        if (autoAspectRation)
+        if (autoAspectRatio)
         {
             aspectRatio = span / chord;
             hasChanged = true;

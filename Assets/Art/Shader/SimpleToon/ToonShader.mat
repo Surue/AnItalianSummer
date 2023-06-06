@@ -32,7 +32,7 @@ Material:
     - _OutlineWidth: 0.25
     - _RimStep: 0.55
     - _RimStepSmooth: 0
-    - _ShadowStep: 0.411
+    - _ShadowStep: 0.45
     - _ShadowStepSmooth: 0
     - _SpecularStep: 0.25
     - _SpecularStepSmooth: 0

@@ -68,7 +68,7 @@ public class WaterController : MonoBehaviour {
         }
     }
 
-    public float getHeightAtPosition(Vector3 position) 
+    public float GetHeightAtPosition(Vector3 position) 
     {   
         float time = Time.timeSinceLevelLoad;
         Vector3 currentPosition = GetWaveAddition(position, time);
@@ -93,10 +93,10 @@ public class WaterController : MonoBehaviour {
         return result;
     }
 
-    private static Vector3 GerstnerWave(Vector3 position, Vector2 direciton, float steepness, float wavelength, float speed, float timeSinceStart) {
+    private static Vector3 GerstnerWave(Vector3 position, Vector2 direction, float steepness, float wavelength, float speed, float timeSinceStart) {
         float k = 2 * Mathf.PI / wavelength;
 
-        Vector2 normalizedDirection = direciton.normalized;
+        Vector2 normalizedDirection = direction.normalized;
 
         float f = k * Vector2.Dot(normalizedDirection, new Vector2(position.x, position.z)) - (speed * timeSinceStart);
         float a = steepness / k;

@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 public class WaterMeshGeneration : MonoBehaviour
@@ -39,7 +41,7 @@ public class WaterMeshGeneration : MonoBehaviour
         if (debugSphere != null) 
         {
             Vector3 newPos = debugSphere.position;
-            newPos.y = WaterController.current.getHeightAtPosition(newPos) + transform.position.y;
+            newPos.y = WaterController.current.GetHeightAtPosition(newPos) + transform.position.y;
             debugSphere.position = newPos;
         }
     }
@@ -102,4 +104,16 @@ public class WaterMeshGeneration : MonoBehaviour
         mesh.uv = uvs;
         mesh.RecalculateNormals();
     }
+
+    #if UNITY_EDITOR
+    private void OnDrawGizmos()
+    {
+	    if (EditorApplication.isPlaying)
+	    {
+		    return;
+	    }
+	    Gizmos.color = new Color(0.1f, 0.6f, 1f, 0.5f);
+	    Gizmos.DrawCube(transform.position, new Vector3(Size, 0.1f, Size));
+    }
+    #endif
 }

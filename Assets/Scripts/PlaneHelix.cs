@@ -17,6 +17,6 @@ public class PlaneHelix : MonoBehaviour
     {
         var vel = Mathf.Clamp(_body.velocity.magnitude, 0, 50);
         
-        transform.Rotate(Vector3.right, vel * Time.deltaTime * _speedModifier);
+        transform.Rotate(Vector3.forward, vel * Time.deltaTime * _speedModifier);
     }
 }
